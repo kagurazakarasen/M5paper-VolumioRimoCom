@@ -103,7 +103,7 @@ void MusicInfo(){
         http.end();
 }
 
-void TouchInfo(){
+void TouchScan(){
 
   if(M5.TP.avaliable()){
     if(!M5.TP.isFingerUp()){
@@ -203,6 +203,9 @@ void loop()
     if( M5.BtnL.wasPressed()) ButtonTest("Prev",2);
     if( M5.BtnP.wasPressed()) ButtonTest("Play/Pause",1);
     if( M5.BtnR.wasPressed()) ButtonTest("Next",3);
+
+    TouchScan();
+
     M5.update();
     delay(100);
     
