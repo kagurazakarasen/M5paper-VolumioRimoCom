@@ -25,6 +25,12 @@ typedef struct {
     int h;
 } rect_t;
 
+typedef struct {   
+    int x;
+    int y;
+} Pos_t;
+
+
 //ボタンの位置とサイズ
 rect_t btns[3] = {
   {100,650,100,100},
@@ -103,31 +109,43 @@ void MusicInfo(){
         http.end();
 }
 
-void TouchScan(){
+void TouchScan(Pos_t *p){
 
-  if(M5.TP.avaliable()){
-    if(!M5.TP.isFingerUp()){
+  if(M5.TP.avaliable()){      // タッチセンサが生きていて
+    if(!M5.TP.isFingerUp()){  // 指が触れていたら（isFingerUp 否定）
         M5.TP.update();
-        canvas.fillCanvas(0);
+        //canvas.fillCanvas(0);
+
+        /*
+        tp_finger_t Finger = M5.TP.readFinger(0);
+        Serial.printf("Finger ID:%d-->X: %d /  Y: %d  Size: %d\r\n", Finger.id, Finger.x, Finger.y , Finger.size);
+        */
+
+        // サンプルより。二重に検出している。（相しないと無入力でヒットし続ける）        
         bool is_update = false;
+        int x;
+        int y;
         for(int i=0;i<2; i++){
             tp_finger_t FingerItem = M5.TP.readFinger(i);
             if((point[i][0]!=FingerItem.x)||(point[i][1]!=FingerItem.y)){
                 is_update = true;
                 point[i][0] = FingerItem.x;
+                x = FingerItem.x;
                 point[i][1] = FingerItem.y;
+                y = FingerItem.y;
                 canvas.fillRect(FingerItem.x-50, FingerItem.y-50, 100, 100, 15);
-                Serial.printf("Finger ID:%d-->X: %d*C  Y: %d  Size: %d\r\n", FingerItem.id, FingerItem.x, FingerItem.y , FingerItem.size);
+                Serial.printf("Finger ID:%d-->X: %d /  Y: %d  Size: %d\r\n", FingerItem.id, FingerItem.x, FingerItem.y , FingerItem.size);
             }
         }
-
-
-        if(is_update)
-          {
-              canvas.pushCanvas(0,0,UPDATE_MODE_GC16);
-              //canvas.pushCanvas(0,0,UPDATE_MODE_DU4);
-          }
+        if(is_update)          {
+              //canvas.pushCanvas(0,0,UPDATE_MODE_GC16);
+              canvas.pushCanvas(0,0,UPDATE_MODE_DU4);
+              p->x = x;
+              p->y = y;
         }
+        
+
+      }
     }
 }
 
@@ -200,11 +218,21 @@ void ButtonTest(char* str, int cmd)
 void loop()
 {
 
+  Pos_t Pos;
+
     if( M5.BtnL.wasPressed()) ButtonTest("Prev",2);
     if( M5.BtnP.wasPressed()) ButtonTest("Play/Pause",1);
     if( M5.BtnR.wasPressed()) ButtonTest("Next",3);
 
-    TouchScan();
+    Pos.x = 0;
+    Pos.y = 0;
+
+    TouchScan(&Pos);
+
+    if( ! Pos.x == 0) {
+     Serial.printf("X: %d /  Y: %d \r\n", Pos.x,Pos.y );
+
+    }
 
     M5.update();
     delay(100);
