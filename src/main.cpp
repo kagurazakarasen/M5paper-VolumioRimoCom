@@ -133,13 +133,13 @@ void TouchScan(Pos_t *p){
                 x = FingerItem.x;
                 point[i][1] = FingerItem.y;
                 y = FingerItem.y;
-                canvas.fillRect(FingerItem.x-50, FingerItem.y-50, 100, 100, 15);
+                //canvas.fillRect(FingerItem.x-50, FingerItem.y-50, 100, 100, 15);
                 Serial.printf("Finger ID:%d-->X: %d /  Y: %d  Size: %d\r\n", FingerItem.id, FingerItem.x, FingerItem.y , FingerItem.size);
             }
         }
         if(is_update)          {
               //canvas.pushCanvas(0,0,UPDATE_MODE_GC16);
-              canvas.pushCanvas(0,0,UPDATE_MODE_DU4);
+              //canvas.pushCanvas(0,0,UPDATE_MODE_DU4);
               p->x = x;
               p->y = y;
         }
@@ -215,15 +215,8 @@ void ButtonTest(char* str, int cmd)
 }
 
 
-void loop()
-{
-
-  Pos_t Pos;
-
-    if( M5.BtnL.wasPressed()) ButtonTest("Prev",2);
-    if( M5.BtnP.wasPressed()) ButtonTest("Play/Pause",1);
-    if( M5.BtnR.wasPressed()) ButtonTest("Next",3);
-
+int TouchBtn(){
+    Pos_t Pos;
     Pos.x = 0;
     Pos.y = 0;
 
@@ -231,9 +224,46 @@ void loop()
 
     if( ! Pos.x == 0) {
      Serial.printf("X: %d /  Y: %d \r\n", Pos.x,Pos.y );
+      //Btn Check
+      if( (Pos.x >btns[0].x ) && (Pos.x < btns[0].x + btns[0].w ) &&
+           (Pos.y >btns[0].y ) && (Pos.y < btns[0].y + btns[0].h )   ) 
+      {
+          Serial.printf("X[0] : ON \r\n");
+          return(1);
+      }
+
+      if( (Pos.x >btns[1].x ) && (Pos.x < btns[1].x + btns[1].w ) &&
+           (Pos.y >btns[1].y ) && (Pos.y < btns[1].y + btns[1].h )   ) 
+      {
+          Serial.printf("X[1] : ON \r\n");
+          return(2);
+      }
+
+      if( (Pos.x >btns[2].x ) && (Pos.x < btns[2].x + btns[2].w ) &&
+           (Pos.y >btns[2].y ) && (Pos.y < btns[2].y + btns[2].h )   ) 
+      {
+          Serial.printf("X[2] : ON \r\n");
+          return(3);
+      }
+
 
     }
+    return(0);
+}
 
+void loop()
+{
+    int i;
+
+    if( M5.BtnL.wasPressed()) ButtonTest("Prev",2);
+    if( M5.BtnP.wasPressed()) ButtonTest("Play/Pause",1);
+    if( M5.BtnR.wasPressed()) ButtonTest("Next",3);
+
+    i =TouchBtn();
+    if(i>0){
+          Serial.printf("Btn %d \r\n",i);
+    }
+    
     M5.update();
     delay(100);
     
