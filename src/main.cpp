@@ -9,8 +9,8 @@ using namespace std;
 string SSID = ""; // SSIDとキー、最初に自分の環境のを入れておく
 string PASS = "";
 
-string VolumioURL = "http://192.168.1.86";
-//string VolumioURL = "http://volumio.local";
+string VolumioURL = "http://192.168.1.86";    // 自環境のVolumioURL
+//string VolumioURL = "http://volumio.local";   
 
 M5EPD_Canvas canvas(&M5.EPD);
 
@@ -40,7 +40,6 @@ rect_t btns[3] = {
 
 
 
-
 void WiFi_setup()
 {
      //connect to WiFi
@@ -66,7 +65,7 @@ void WiFI_off()
 }
 
 void BtnDraw(int No,bool B){
-    canvas.deleteCanvas();  //既存のCanvasデリーと
+    canvas.deleteCanvas();  //既存のdeleteCanvas
     canvas.createCanvas(100,100); // 100x100のCanvas作成
 
     if(B){    // B が Trueならボタン正常標示、Falseなら反転
@@ -78,29 +77,7 @@ void BtnDraw(int No,bool B){
     canvas.pushCanvas(btns[No].x,btns[No].y,UPDATE_MODE_DU4);
 }
 
-void BtnDrawAll()
-{
-    //ボタン描画
 
-    /*
-    canvas.drawRoundRect( btns[0].x, btns[0].y, btns[0].w, btns[0].h, 5, 15);
-    canvas.drawRoundRect( btns[1].x, btns[1].y, btns[1].w, btns[1].h, 5, 15);
-    canvas.drawRoundRect( btns[2].x, btns[2].y, btns[2].w, btns[2].h, 5, 15);
-
-    //実験。100x100のカンバスを作り、300,300位置に描画、0,0でpushCanvasで表示。
-    canvas.createCanvas(100,100);
-    //canvas.deleteCanvas();
-    canvas.drawRoundRect( 1, 1,80,80, 5, 15);
-    canvas.pushCanvas(200,200,UPDATE_MODE_DU4); // pushCanvas 位置を変更する意味はなさそう？
-    // てっきりCanvas位置を変えて描画できると思ったがそんなことはなかった模様
-    //canvas.pushCanvas(200,300,UPDATE_MODE_DU4); // pushCanvas 位置を変更する意味はなさそう？
-  */
-
-    BtnDraw(0,true);
-    BtnDraw(1,true);
-    BtnDraw(2,true);
-
-}
 void EPDinit()
 {
   canvas.deleteCanvas(); // setup時には無意味？
@@ -114,7 +91,12 @@ void EPDinit()
     //canvas.fillRect(300, 200, 100, 100, 15);
     canvas.pushCanvas(0,0,UPDATE_MODE_DU4);
 
-  BtnDrawAll();
+  //BtnDrawAll();
+
+    //ボタン描画
+    BtnDraw(0,true);
+    BtnDraw(1,true);
+    BtnDraw(2,true);
 
 }
 
@@ -181,13 +163,6 @@ void TouchScan(Pos_t *p){
     }
 }
 
-void AlbumArt(){
-
-          //アルバムアート
-        canvas.drawPngUrl("http://192.168.1.86/albumart?cacheid=223&web=Pharrell%20Williams/Girl/extralarge&path=%2Fmnt%2FNAS%2Fpub2%2FCompilations%2FGirl&metadata=false",50,200);
-        //canvas.pushCanvas(0,0,UPDATE_MODE_GC16);
-
-}
 
 void ButtonTest(char* str, int cmd)
 {
@@ -258,30 +233,13 @@ int TouchBtn(){
            (Pos.y >btns[0].y ) && (Pos.y < btns[0].y + btns[0].h )   ) 
       {
         //ここに入ってきたらBtn[0]がタッチされたということ
-          /*
-            // 既存 canvas の削除
-          canvas.deleteCanvas();
-          // 新規 canvas の生成 （幅 100 x 高さ 100 [pixel]）
-          canvas.createCanvas(100,100);
-          canvas.fillRoundRect(0, 0, 100, 100, 5,15); // ボタン塗りつぶし反転
-          canvas.pushCanvas(btns[0].x,btns[0].y,UPDATE_MODE_DU4);
-          */
+
          BtnDraw(0,false);
           //コマンド処理
           Serial.printf("X[0] : ON \r\n");
 
           //ボタン戻し
-
          BtnDraw(0,true);
-
-          /*
-          canvas.deleteCanvas();
-          canvas.createCanvas(100,100);   //不要？
-          
-          // canvas.drawRoundRect( btns[0].x, btns[0].y, btns[0].w, btns[0].h, 5, 15);
-          canvas.drawRoundRect( 0,0,100,100, 5, 15);
-          canvas.pushCanvas(btns[0].x,btns[0].y,UPDATE_MODE_DU4);
-          */
           return(1);
       }
 
@@ -341,16 +299,16 @@ void loop()
               break;
           }
 
-      int httpCode = http.GET();
-      if (httpCode > 0) {
-        String response = http.getString();
-        //以降、データに応じた処理
-        canvas.drawString(response, 0, 0);
-        Serial.println(response);
-      } else {
-        Serial.println("Error on HTTP request");
-      }
-      http.end();
+          int httpCode = http.GET();
+          if (httpCode > 0) {
+            String response = http.getString();
+            //以降、データに応じた処理
+            canvas.drawString(response, 0, 0);
+            Serial.println(response);
+          } else {
+            Serial.println("Error on HTTP request");
+          }
+          http.end();
 
     }
 
