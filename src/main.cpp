@@ -39,6 +39,8 @@ rect_t btns[3] = {
 };
 
 
+
+
 void WiFi_setup()
 {
      //connect to WiFi
@@ -63,6 +65,59 @@ void WiFI_off()
    WiFi.mode(WIFI_OFF);
 }
 
+void BtnDraw(int No,bool B){
+    canvas.deleteCanvas();  //既存のCanvasデリーと
+    canvas.createCanvas(100,100); // 100x100のCanvas作成
+
+    if(B){    // B が Trueならボタン正常標示、Falseなら反転
+        canvas.drawRoundRect( 0,0,100,100, 5, 15);
+    } else {
+        canvas.fillRoundRect(0, 0, 100, 100, 5,15); // ボタン塗りつぶし反転
+    }
+
+    canvas.pushCanvas(btns[No].x,btns[No].y,UPDATE_MODE_DU4);
+}
+
+void BtnDrawAll()
+{
+    //ボタン描画
+
+    /*
+    canvas.drawRoundRect( btns[0].x, btns[0].y, btns[0].w, btns[0].h, 5, 15);
+    canvas.drawRoundRect( btns[1].x, btns[1].y, btns[1].w, btns[1].h, 5, 15);
+    canvas.drawRoundRect( btns[2].x, btns[2].y, btns[2].w, btns[2].h, 5, 15);
+
+    //実験。100x100のカンバスを作り、300,300位置に描画、0,0でpushCanvasで表示。
+    canvas.createCanvas(100,100);
+    //canvas.deleteCanvas();
+    canvas.drawRoundRect( 1, 1,80,80, 5, 15);
+    canvas.pushCanvas(200,200,UPDATE_MODE_DU4); // pushCanvas 位置を変更する意味はなさそう？
+    // てっきりCanvas位置を変えて描画できると思ったがそんなことはなかった模様
+    //canvas.pushCanvas(200,300,UPDATE_MODE_DU4); // pushCanvas 位置を変更する意味はなさそう？
+  */
+
+    BtnDraw(0,true);
+    BtnDraw(1,true);
+    BtnDraw(2,true);
+
+}
+void EPDinit()
+{
+  canvas.deleteCanvas(); // setup時には無意味？
+    canvas.createCanvas(540, 960);
+    
+    canvas.setTextSize(3);
+    //canvas.drawString("Volumio", 45, 15);
+    canvas.drawString("Remote controller", 80, 50);
+
+    canvas.drawRoundRect(50, 200, 400, 400, 5, 15);
+    //canvas.fillRect(300, 200, 100, 100, 15);
+    canvas.pushCanvas(0,0,UPDATE_MODE_DU4);
+
+  BtnDrawAll();
+
+}
+
 void setup()
 {
     M5.begin();
@@ -76,21 +131,8 @@ void setup()
     //WiFi
     WiFi_setup();
     
-    canvas.createCanvas(540, 960);
-    
-    canvas.setTextSize(3);
-    //canvas.drawString("Volumio", 45, 15);
-    canvas.drawString("Remote controller", 80, 50);
+    EPDinit();
 
-    canvas.drawRoundRect(50, 200, 400, 400, 5, 15);
-    //canvas.fillRect(300, 200, 100, 100, 15);
-
-    //ボタン描画
-    canvas.drawRoundRect( btns[0].x, btns[0].y, btns[0].w, btns[0].h, 5, 15);
-    canvas.drawRoundRect( btns[1].x, btns[1].y, btns[1].w, btns[1].h, 5, 15);
-    canvas.drawRoundRect( btns[2].x, btns[2].y, btns[2].w, btns[2].h, 5, 15);
-
-    canvas.pushCanvas(0,0,UPDATE_MODE_DU4);
 }
 
 void MusicInfo(){
@@ -114,14 +156,8 @@ void TouchScan(Pos_t *p){
   if(M5.TP.avaliable()){      // タッチセンサが生きていて
     if(!M5.TP.isFingerUp()){  // 指が触れていたら（isFingerUp 否定）
         M5.TP.update();
-        //canvas.fillCanvas(0);
 
-        /*
-        tp_finger_t Finger = M5.TP.readFinger(0);
-        Serial.printf("Finger ID:%d-->X: %d /  Y: %d  Size: %d\r\n", Finger.id, Finger.x, Finger.y , Finger.size);
-        */
-
-        // サンプルより。二重に検出している。（相しないと無入力でヒットし続ける）        
+        // サンプルより。二重に検出している。（そうしないと無入力でヒットし続けちゃう模様）        
         bool is_update = false;
         int x;
         int y;
@@ -138,13 +174,9 @@ void TouchScan(Pos_t *p){
             }
         }
         if(is_update)          {
-              //canvas.pushCanvas(0,0,UPDATE_MODE_GC16);
-              //canvas.pushCanvas(0,0,UPDATE_MODE_DU4);
               p->x = x;
               p->y = y;
         }
-        
-
       }
     }
 }
@@ -159,12 +191,12 @@ void AlbumArt(){
 
 void ButtonTest(char* str, int cmd)
 {
-  // cmd = 1:pause/pley 2:rev 3:fwd
 
-  //char ComStr1[ ] = "arduino";
-  
-    canvas.fillCanvas(0);
-    canvas.drawString(str, 100, 100);
+      // 既存 canvas の削除
+    canvas.deleteCanvas();
+
+    // 新規 canvas の生成 （幅 350 x 高さ 25 [pixel]）
+    canvas.createCanvas(350, 25);
 
     HTTPClient http;
 
@@ -173,27 +205,15 @@ void ButtonTest(char* str, int cmd)
     switch (cmd) {
       case 1:
         CmdStr += "/api/v1/commands?cmd=toggle";
-        //http.begin("http://192.168.1.86/api/v1/commands?cmd=toggle");
         http.begin(CmdStr.c_str());
-        /*
-        if(p_mode==1){
-            http.begin("http://192.168.1.86/api/v1/commands?cmd=pause");
-            p_mode=0;
-        }else{
-            http.begin("http://192.168.1.86/api/v1/commands?cmd=play");      
-            p_mode=1;
-        }
-        */
         break;
       case 2:
-        //http.begin("http://192.168.1.86/api/v1/commands?cmd=prev");
         CmdStr += "/api/v1/commands?cmd=prev";
         http.begin(CmdStr.c_str());
         break;
       case 3:
         CmdStr += "/api/v1/commands?cmd=next";
         http.begin(CmdStr.c_str());
-        //http.begin("http://192.168.1.86/api/v1/commands?cmd=next");
         break;
     }
         
@@ -201,7 +221,7 @@ void ButtonTest(char* str, int cmd)
     if (httpCode > 0) {
       String response = http.getString();
       //以降、データに応じた処理
-      canvas.drawString(response, 0, 200);
+      canvas.drawString(response, 0, 0);
       Serial.println(response);
     } else {
       Serial.println("Error on HTTP request");
@@ -209,8 +229,16 @@ void ButtonTest(char* str, int cmd)
     http.end();
 
 
-    
-    canvas.pushCanvas(100,300,UPDATE_MODE_DU4);
+    // canvas に図形を描く （canvas 座標系において (5, 5) を起点とする幅 30 x 高さ 15 [pixel] の矩形）
+    // 引数の末尾は 16 階調の色（濃さ）で最も濃い
+    canvas.drawRect(5, 5, 30, 15, 15);
+
+    // canvas を表示 （画面座標系において (185, 10) を起点に）
+    // 引数の末尾は update_mode （DU4 は最も高速，GC16 は低速ながら高画質で画像描画向き）
+    canvas.pushCanvas(20, 500, UPDATE_MODE_DU4);
+
+
+    //canvas.pushCanvas(100,300,UPDATE_MODE_DU4);
     delay(500);
 }
 
@@ -220,6 +248,7 @@ int TouchBtn(){
     Pos.x = 0;
     Pos.y = 0;
 
+
     TouchScan(&Pos);
 
     if( ! Pos.x == 0) {
@@ -228,25 +257,51 @@ int TouchBtn(){
       if( (Pos.x >btns[0].x ) && (Pos.x < btns[0].x + btns[0].w ) &&
            (Pos.y >btns[0].y ) && (Pos.y < btns[0].y + btns[0].h )   ) 
       {
+        //ここに入ってきたらBtn[0]がタッチされたということ
+          /*
+            // 既存 canvas の削除
+          canvas.deleteCanvas();
+          // 新規 canvas の生成 （幅 100 x 高さ 100 [pixel]）
+          canvas.createCanvas(100,100);
+          canvas.fillRoundRect(0, 0, 100, 100, 5,15); // ボタン塗りつぶし反転
+          canvas.pushCanvas(btns[0].x,btns[0].y,UPDATE_MODE_DU4);
+          */
+         BtnDraw(0,false);
+          //コマンド処理
           Serial.printf("X[0] : ON \r\n");
+
+          //ボタン戻し
+
+         BtnDraw(0,true);
+
+          /*
+          canvas.deleteCanvas();
+          canvas.createCanvas(100,100);   //不要？
+          
+          // canvas.drawRoundRect( btns[0].x, btns[0].y, btns[0].w, btns[0].h, 5, 15);
+          canvas.drawRoundRect( 0,0,100,100, 5, 15);
+          canvas.pushCanvas(btns[0].x,btns[0].y,UPDATE_MODE_DU4);
+          */
           return(1);
       }
 
       if( (Pos.x >btns[1].x ) && (Pos.x < btns[1].x + btns[1].w ) &&
            (Pos.y >btns[1].y ) && (Pos.y < btns[1].y + btns[1].h )   ) 
       {
+         BtnDraw(1,false);
           Serial.printf("X[1] : ON \r\n");
+         BtnDraw(1,true);
           return(2);
       }
 
       if( (Pos.x >btns[2].x ) && (Pos.x < btns[2].x + btns[2].w ) &&
            (Pos.y >btns[2].y ) && (Pos.y < btns[2].y + btns[2].h )   ) 
       {
+           BtnDraw(2,false);
           Serial.printf("X[2] : ON \r\n");
+           BtnDraw(2,true);
           return(3);
       }
-
-
     }
     return(0);
 }
@@ -259,11 +314,47 @@ void loop()
     if( M5.BtnP.wasPressed()) ButtonTest("Play/Pause",1);
     if( M5.BtnR.wasPressed()) ButtonTest("Next",3);
 
+    HTTPClient http;
+
+    string CmdStr = VolumioURL;
+
+
     i =TouchBtn();
     if(i>0){
           Serial.printf("Btn %d \r\n",i);
+        
+          switch (i) {
+            case 1:
+              //http.begin("http://192.168.1.86/api/v1/commands?cmd=prev");
+              CmdStr += "/api/v1/commands?cmd=prev";
+              http.begin(CmdStr.c_str());
+              break;
+            case 2:
+              CmdStr += "/api/v1/commands?cmd=toggle";
+              //http.begin("http://192.168.1.86/api/v1/commands?cmd=toggle");
+              http.begin(CmdStr.c_str());
+              break;
+            case 3:
+              CmdStr += "/api/v1/commands?cmd=next";
+              http.begin(CmdStr.c_str());
+              //http.begin("http://192.168.1.86/api/v1/commands?cmd=next");
+              break;
+          }
+
+      int httpCode = http.GET();
+      if (httpCode > 0) {
+        String response = http.getString();
+        //以降、データに応じた処理
+        canvas.drawString(response, 0, 0);
+        Serial.println(response);
+      } else {
+        Serial.println("Error on HTTP request");
+      }
+      http.end();
+
     }
-    
+
+
     M5.update();
     delay(100);
     
