@@ -3,6 +3,7 @@
 #include <WiFi.h>
 #include "time.h"
 #include <HTTPClient.h>
+#include <regex>
 #include <string>  
 using namespace std; 
 
@@ -38,7 +39,9 @@ rect_t btns[3] = {
   {340,650,100,100}
 };
 
-
+rect_t infoRect={
+  100, 220, 350, 350
+};
 
 void WiFi_setup()
 {
@@ -73,6 +76,19 @@ void BtnDraw(int No,bool B){
     } else {
         canvas.fillRoundRect(0, 0, 100, 100, 5,15); // ボタン塗りつぶし反転
     }
+    switch(No){
+      case 0:
+        canvas.drawString("<<", 10, 40);
+        break;
+      case 1:
+        canvas.drawString("Play/", 6, 20);
+        canvas.drawString("Pause", 6, 50);
+        break;
+      case 2:
+        canvas.drawString(">>", 10, 40);
+        break;
+    }
+
 
     canvas.pushCanvas(btns[No].x,btns[No].y,UPDATE_MODE_DU4);
 }
@@ -87,7 +103,8 @@ void EPDinit()
     //canvas.drawString("Volumio", 45, 15);
     canvas.drawString("Remote controller", 80, 50);
 
-    canvas.drawRoundRect(50, 200, 400, 400, 5, 15);
+    canvas.drawRoundRect(infoRect.x, infoRect.y, infoRect.w, infoRect.h, 5, 15);
+    //canvas.drawRoundRect(100, 220, 350, 350, 5, 15);
     //canvas.fillRect(300, 200, 100, 100, 15);
     canvas.pushCanvas(0,0,UPDATE_MODE_DU4);
 
@@ -117,20 +134,57 @@ void setup()
 
 }
 
+void AlbumArt(){
+
+          //アルバムアートテスト
+        canvas.drawPngUrl("http://192.168.1.86/albumart?cacheid=223&web=Pharrell%20Williams/Girl/extralarge&path=%2Fmnt%2FNAS%2Fpub2%2FCompilations%2FGirl&metadata=false",50,200);
+        //canvas.pushCanvas(0,0,UPDATE_MODE_GC16);
+
+}
+
+
 void MusicInfo(){
+  String res_str;
         HTTPClient http;
         http.begin("http://192.168.1.86/api/v1/getState");
 
         int httpCode = http.GET();
         if (httpCode > 0) {
-          String response = http.getString();
+          //String response = http.getString();
+          res_str = http.getString();
           //以降、データに応じた処理
           //canvas.drawString(response, 10, 200);
-          Serial.println(response);
+          Serial.println(res_str);
         } else {
           Serial.println("Error on HTTP request");
         }
         http.end();
+
+         // 既存 canvas の削除
+        canvas.deleteCanvas();
+        // 新規 canvas の生成 （幅 350 x 高さ 25 [pixel]）
+        canvas.createCanvas( infoRect.w, infoRect.h);
+
+        string title_str = "";
+        int l = res_str.indexOf("title");
+        if(l>0){
+          int l2 = res_str.indexOf("\"",l+8);
+          //title_str= String( res_str.substring(l,l2));
+          //canvas.println(res_str.substring(l+8,l2));
+          
+        }      
+
+        //string str1 = regex_replace(res_str, "title", " \r\n");
+
+        //canvas.drawString(res_str, 0, 0);
+        canvas.println(res_str);
+
+     // canvas.drawRoundRect(0, 0, 350, 350, 5, 15);
+    canvas.drawRoundRect(0,0, infoRect.w, infoRect.h, 5, 15);
+
+
+     // canvas.pushCanvas(100, 220, UPDATE_MODE_DU4);
+      canvas.pushCanvas(infoRect.x, infoRect.y, UPDATE_MODE_DU4);
 }
 
 void TouchScan(Pos_t *p){
@@ -309,6 +363,8 @@ void loop()
             Serial.println("Error on HTTP request");
           }
           http.end();
+
+          MusicInfo();
 
     }
 
