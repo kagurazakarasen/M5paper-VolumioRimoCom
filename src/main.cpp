@@ -125,6 +125,9 @@ void setup()
     M5.EPD.Clear(true);
     M5.RTC.begin();
 
+    //canvas.loadFont("font.ttf",SD);
+    canvas.loadFont("GenSenRounded-R.ttf",SD);
+
     p_mode = 0; // stop
 
     //WiFi
@@ -142,18 +145,35 @@ void AlbumArt(){
 
 }
 
+// in_str中から S_strを探し、その,次の””でくくられたStringを返す
+String InfoGet(String in_str, String S_str){
+        String ret_str = "";
+        int l = in_str.indexOf(S_str);
+          //Serial.println(l);
+        if(l>0){
+          int l2 = in_str.indexOf("\"",l+S_str.length()+3); // +3は、検索対象の後ろの ",:" の分。
+          //Serial.println(l2);
+          ret_str = String( in_str.substring(l+S_str.length()+3,l2));
+          //Serial.println(l2);
+          // canvas.println(in_str.substring(l+S_str.length()+3,l2));
+          
+        }      
+        return(ret_str);
+}
 
 void MusicInfo(){
-  String res_str;
+    string CmdStr = VolumioURL;
+    String res_str;
+  
         HTTPClient http;
-        http.begin("http://192.168.1.86/api/v1/getState");
+        CmdStr += "/api/v1/getState";
+        http.begin(CmdStr.c_str());
+        //http.begin("http://192.168.1.86/api/v1/getState");
 
         int httpCode = http.GET();
         if (httpCode > 0) {
-          //String response = http.getString();
           res_str = http.getString();
           //以降、データに応じた処理
-          //canvas.drawString(response, 10, 200);
           Serial.println(res_str);
         } else {
           Serial.println("Error on HTTP request");
@@ -165,26 +185,41 @@ void MusicInfo(){
         // 新規 canvas の生成 （幅 350 x 高さ 25 [pixel]）
         canvas.createCanvas( infoRect.w, infoRect.h);
 
-        string title_str = "";
+/*
+        String title_str = "";
         int l = res_str.indexOf("title");
         if(l>0){
           int l2 = res_str.indexOf("\"",l+8);
-          //title_str= String( res_str.substring(l,l2));
-          //canvas.println(res_str.substring(l+8,l2));
+          title_str= String( res_str.substring(l,l2));
+          canvas.println(res_str.substring(l+8,l2));
           
         }      
+*/
+        String title_str = InfoGet(res_str,"title");
+        canvas.println("TITLE:");
+        canvas.println();
+        canvas.println(title_str);
+        canvas.println();
+
+        String album_str = InfoGet(res_str,"album");
+        canvas.print("ALBUM:");
+        canvas.println(album_str);
+        canvas.println();
+
+        String artist_str = InfoGet(res_str,"artist");
+        canvas.print("artist:");
+        canvas.println(artist_str);
+        canvas.println();
+
 
         //string str1 = regex_replace(res_str, "title", " \r\n");
 
-        //canvas.drawString(res_str, 0, 0);
-        canvas.println(res_str);
+       // canvas.println(res_str);
 
      // canvas.drawRoundRect(0, 0, 350, 350, 5, 15);
-    canvas.drawRoundRect(0,0, infoRect.w, infoRect.h, 5, 15);
+    canvas.drawRoundRect(0,0, infoRect.w, infoRect.h, 5, 15); //枠書き直し
 
-
-     // canvas.pushCanvas(100, 220, UPDATE_MODE_DU4);
-      canvas.pushCanvas(infoRect.x, infoRect.y, UPDATE_MODE_DU4);
+    canvas.pushCanvas(infoRect.x, infoRect.y, UPDATE_MODE_DU4);
 }
 
 void TouchScan(Pos_t *p){
