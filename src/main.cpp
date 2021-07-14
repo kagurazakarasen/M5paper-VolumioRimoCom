@@ -7,6 +7,8 @@
 #include <string>  
 using namespace std; 
 
+#define FF18 &FreeSans12pt7b
+
 string SSID = ""; // SSIDとキー、最初に自分の環境のを入れておく
 string PASS = "";
 
@@ -42,6 +44,12 @@ rect_t btns[3] = {
 rect_t infoRect={
   100, 220, 350, 350
 };
+
+rect_t volRect={
+  510, 350, 30, 300
+};
+
+int VOL = 50;
 
 void WiFi_setup()
 {
@@ -94,18 +102,36 @@ void BtnDraw(int No,bool B){
 }
 
 
+void VolDraw(){
+    canvas.deleteCanvas();  //既存のdeleteCanvas
+    canvas.createCanvas(volRect.w,volRect.h); // 100x100のCanvas作成
+
+    canvas.fillRect(0,    volRect.h-VOL ,volRect.w,  VOL ,15);  // VOLUME
+
+    canvas.pushCanvas( volRect.x,volRect.y,UPDATE_MODE_DU4);
+}
+
+
 void EPDinit()
 {
   canvas.deleteCanvas(); // setup時には無意味？
     canvas.createCanvas(540, 960);
     
     canvas.setTextSize(3);
+
     //canvas.drawString("Volumio", 45, 15);
     canvas.drawString("Remote controller", 80, 50);
 
     canvas.drawRoundRect(infoRect.x, infoRect.y, infoRect.w, infoRect.h, 5, 15);
     //canvas.drawRoundRect(100, 220, 350, 350, 5, 15);
     //canvas.fillRect(300, 200, 100, 100, 15);
+
+    //ボリューム枠
+    canvas.drawRect(volRect.x,volRect.y,volRect.w,volRect.h,15);
+    //仮ボリューム
+    canvas.fillRect(volRect.x,volRect.y+100,volRect.w,volRect.h-100,15);
+
+
     canvas.pushCanvas(0,0,UPDATE_MODE_DU4);
 
   //BtnDrawAll();
@@ -114,6 +140,7 @@ void EPDinit()
     BtnDraw(0,true);
     BtnDraw(1,true);
     BtnDraw(2,true);
+
 
 }
 
@@ -125,8 +152,25 @@ void setup()
     M5.EPD.Clear(true);
     M5.RTC.begin();
 
-    //canvas.loadFont("font.ttf",SD);
-    canvas.loadFont("GenSenRounded-R.ttf",SD);
+
+  canvas.createCanvas(540, 960);
+  canvas.setTextDatum(TC_DATUM);
+  canvas.setTextSize(3);
+
+  canvas.drawString("... Initializing ...", 270, 640);
+
+  canvas.drawString("Loading font ...", 270, 230);
+   // canvas.loadFont("/font.ttf",SD);
+    
+    //canvas.loadFont("/GenSenRounded-R.ttf",SD);
+    canvas.createRender(96, 256); //? 
+    canvas.createRender(32, 256);
+
+
+  canvas.drawString("OK!", 270, 254);
+  canvas.pushCanvas(0,0,UPDATE_MODE_DU4);
+
+
 
     p_mode = 0; // stop
 
@@ -211,15 +255,36 @@ void MusicInfo(){
         canvas.println(artist_str);
         canvas.println();
 
+        // AlbumArt
+        String albumArt_str = InfoGet(res_str,"albumart");
+        //canvas.println(albumArt_str);
+        //canvas.println();
+        CmdStr = VolumioURL;
+        CmdStr += albumArt_str.c_str();
+        Serial.println(CmdStr.c_str());
+
+
+    canvas.drawRoundRect(0,0, infoRect.w, infoRect.h, 5, 15); //枠書き直し
+
+
+    canvas.pushCanvas(infoRect.x, infoRect.y, UPDATE_MODE_DU4);
+
+
+         // 既存 canvas の削除
+        canvas.deleteCanvas();
+        // 新規 canvas の生成 （幅 350 x 高さ 25 [pixel]）
+        canvas.createCanvas( infoRect.w, infoRect.h);
+
+         canvas.drawPngUrl(CmdStr.c_str(),0,0); // アルバムアートDRAW
+
+        canvas.pushCanvas(infoRect.x, infoRect.y, UPDATE_MODE_GC16);
+
 
         //string str1 = regex_replace(res_str, "title", " \r\n");
 
        // canvas.println(res_str);
 
      // canvas.drawRoundRect(0, 0, 350, 350, 5, 15);
-    canvas.drawRoundRect(0,0, infoRect.w, infoRect.h, 5, 15); //枠書き直し
-
-    canvas.pushCanvas(infoRect.x, infoRect.y, UPDATE_MODE_DU4);
 }
 
 void TouchScan(Pos_t *p){
@@ -272,12 +337,20 @@ void ButtonTest(char* str, int cmd)
         http.begin(CmdStr.c_str());
         break;
       case 2:
-        CmdStr += "/api/v1/commands?cmd=prev";
-        http.begin(CmdStr.c_str());
+        if(VOL<90){
+          VOL += 10;
+        }
+        VolDraw();
+        //CmdStr += "/api/v1/commands?cmd=prev";
+        //http.begin(CmdStr.c_str());
         break;
       case 3:
-        CmdStr += "/api/v1/commands?cmd=next";
-        http.begin(CmdStr.c_str());
+        if(VOL>10){
+          VOL -= 10;
+        }
+        VolDraw();
+        //CmdStr += "/api/v1/commands?cmd=next";
+        //http.begin(CmdStr.c_str());
         break;
     }
         
