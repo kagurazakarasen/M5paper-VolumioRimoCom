@@ -1,5 +1,5 @@
 #include <M5EPD.h>
-
+#include <FS.h>
 #include <WiFi.h>
 #include "time.h"
 #include <HTTPClient.h>
@@ -50,6 +50,79 @@ rect_t volRect={
 };
 
 int VOL = 50;
+
+
+// SDカードがセットされていれば、SPIFFSを初期化後font.ttfをコピーする
+bool tryCopySDFile() {
+  const char *path = "/font.ttf";
+  if (!SD.begin(4) || !SD.exists(path)) {
+    return SPIFFS.begin(false) && SPIFFS.exists(path);
+  }
+
+  canvas.drawString("Copying font ...", 270, 664);
+  canvas.pushCanvas(0,0,UPDATE_MODE_DU4);
+
+  Serial.println("Formatting SPIFFS ...");
+  if (!SPIFFS.format()) {
+      Serial.println("SPIFFS format Failed");
+      return false;
+  }
+  if (!SPIFFS.begin()) {
+      Serial.println("SPIFFS Mount Failed");
+      return false;
+  }
+  Serial.println("Copying font ...");
+  File file = SD.open(path);
+  SPIFFS.remove(path);
+  File dest = SPIFFS.open(path, FILE_WRITE);
+  if (!file || !dest) {
+    Serial.println("failed.");
+    return false;
+  }
+  uint8_t *buf = new uint8_t[4096];
+  if (!buf) {
+    Serial.println("failed.");
+    return false;
+  }
+  size_t len, size, ret;
+  size = len = file.size();
+  while (len) {
+    size_t s = len;
+    if (s > 4096)
+      s = 4096;
+    file.read(buf, s);
+    if ((ret = dest.write(buf, s)) < s) {
+      Serial.print("write failed: ");
+      Serial.print(ret);
+      Serial.print(" - ");
+      Serial.println(s);
+      return false;
+    }
+    len -= s;
+    Serial.print(size - len);
+    Serial.print(" / ");
+    Serial.println(size);
+  }
+  delete[] buf;
+  file.close();
+  dest.close();
+
+  if (!SPIFFS.exists(path)) {
+    Serial.println("no file");
+    return false;
+  }
+  dest = SPIFFS.open(path);
+  len = dest.size();
+  dest.close();
+  if (len != size) {
+    Serial.print("size not match : ");
+    Serial.println(dest.size());
+    return false;
+  }
+  Serial.println("Done.");
+  return true;
+}
+
 
 void WiFi_setup()
 {
@@ -117,7 +190,8 @@ void EPDinit()
   canvas.deleteCanvas(); // setup時には無意味？
     canvas.createCanvas(540, 960);
     
-    canvas.setTextSize(3);
+    //canvas.setTextSize(3);
+    canvas.setTextSize(32);
 
     //canvas.drawString("Volumio", 45, 15);
     canvas.drawString("Remote controller", 80, 50);
@@ -144,6 +218,9 @@ void EPDinit()
 
 }
 
+
+
+
 void setup()
 {
     M5.begin();
@@ -158,17 +235,24 @@ void setup()
   canvas.setTextSize(3);
 
   canvas.drawString("... Initializing ...", 270, 640);
+    canvas.pushCanvas(0,0,UPDATE_MODE_DU4);
 
+  // SDからフォントを読み込む
   canvas.drawString("Loading font ...", 270, 230);
-   // canvas.loadFont("/font.ttf",SD);
-    
-    //canvas.loadFont("/GenSenRounded-R.ttf",SD);
-    canvas.createRender(96, 256); //? 
-    canvas.createRender(32, 256);
+  canvas.pushCanvas(0,0,UPDATE_MODE_DU4);
+  Serial.println("Loading font from SD.");
+  canvas.loadFont("/font.ttf", SD);
+  Serial.println("Loading done.");
 
+  //Render 作成
+  canvas.createRender(96, 256);   //96ポイント
+  canvas.createRender(32, 256);   //32ポイント
+
+  canvas.setTextSize(32);
 
   canvas.drawString("OK!", 270, 254);
   canvas.pushCanvas(0,0,UPDATE_MODE_DU4);
+
 
 
 
@@ -243,6 +327,10 @@ void MusicInfo(){
         canvas.println("TITLE:");
         canvas.println();
         canvas.println(title_str);
+
+        canvas.setTextSize(32);
+        canvas.drawString(title_str, 12, 64);
+        Serial.printf("Title:%s\r\n", title_str.c_str());
         canvas.println();
 
         String album_str = InfoGet(res_str,"album");
@@ -269,7 +357,7 @@ void MusicInfo(){
 
     canvas.pushCanvas(infoRect.x, infoRect.y, UPDATE_MODE_DU4);
 
-
+/* アルバムアート表示テスト　-今はカットしておく
          // 既存 canvas の削除
         canvas.deleteCanvas();
         // 新規 canvas の生成 （幅 350 x 高さ 25 [pixel]）
@@ -278,13 +366,8 @@ void MusicInfo(){
          canvas.drawPngUrl(CmdStr.c_str(),0,0); // アルバムアートDRAW
 
         canvas.pushCanvas(infoRect.x, infoRect.y, UPDATE_MODE_GC16);
+*/
 
-
-        //string str1 = regex_replace(res_str, "title", " \r\n");
-
-       // canvas.println(res_str);
-
-     // canvas.drawRoundRect(0, 0, 350, 350, 5, 15);
 }
 
 void TouchScan(Pos_t *p){
