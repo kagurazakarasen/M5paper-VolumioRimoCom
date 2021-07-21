@@ -329,7 +329,8 @@ void TouchScan(Pos_t *p){
 }
 
 
-void ButtonTest(char* str, int cmd)
+//void ButtonTest(char* str, int cmd)
+void ButtonTest(String str, int cmd)
 {
 
       // 既存 canvas の削除
