@@ -15,6 +15,9 @@ string PASS = "";
 string VolumioURL = "http://192.168.1.86";    // 自環境のVolumioURL
 //string VolumioURL = "http://volumio.local";   
 
+string AlbumArtURL = "http://192.168.1.85/resize.png";    // アルバムイメージリサイズ後のイメージURL
+
+
 M5EPD_Canvas canvas(&M5.EPD);
 
 int point[2][2];
@@ -35,10 +38,11 @@ typedef struct {
 
 
 //ボタンの位置とサイズ
-rect_t btns[3] = {
+rect_t btns[] = {
   {100,650,100,100},
   {220,650,100,100},
-  {340,650,100,100}
+  {340,650,100,100},
+  {100,220,350,350}
 };
 
 rect_t infoRect={
@@ -196,9 +200,18 @@ void setup()
 void AlbumArt(){
 
           //アルバムアートテスト
-        canvas.drawPngUrl("http://192.168.1.86/albumart?cacheid=223&web=Pharrell%20Williams/Girl/extralarge&path=%2Fmnt%2FNAS%2Fpub2%2FCompilations%2FGirl&metadata=false",50,200);
+       // canvas.drawPngUrl("http://192.168.1.86/albumart?cacheid=223&web=Pharrell%20Williams/Girl/extralarge&path=%2Fmnt%2FNAS%2Fpub2%2FCompilations%2FGirl&metadata=false",50,200);
         //canvas.pushCanvas(0,0,UPDATE_MODE_GC16);
+      /* アルバムアート表示 */
+         // 既存 canvas の削除
+        canvas.deleteCanvas();
+        // 新規 canvas の生成 （幅 350 x 高さ 25 [pixel]）
+        canvas.createCanvas( infoRect.w, infoRect.h);
 
+         //canvas.drawPngUrl(CmdStr.c_str(),0,0); // アルバムアートDRAW
+         canvas.drawPngUrl(AlbumArtURL.c_str(),0,0); // アルバムアートDRAW
+
+        canvas.pushCanvas(infoRect.x, infoRect.y, UPDATE_MODE_GC16);
 }
 
 // in_str中から S_strを探し、その,次の””でくくられたStringを返す
@@ -241,16 +254,6 @@ void MusicInfo(){
         // 新規 canvas の生成 （幅 350 x 高さ 25 [pixel]）
         canvas.createCanvas( infoRect.w, infoRect.h);
 
-/*
-        String title_str = "";
-        int l = res_str.indexOf("title");
-        if(l>0){
-          int l2 = res_str.indexOf("\"",l+8);
-          title_str= String( res_str.substring(l,l2));
-          canvas.println(res_str.substring(l+8,l2));
-          
-        }      
-*/
         String title_str = InfoGet(res_str,"title");
         canvas.println("TITLE:");
         canvas.println();
@@ -271,30 +274,14 @@ void MusicInfo(){
         canvas.println(artist_str);
         canvas.println();
 
-        // AlbumArt
-        String albumArt_str = InfoGet(res_str,"albumart");
-        //canvas.println(albumArt_str);
-        //canvas.println();
-        CmdStr = VolumioURL;
-        CmdStr += albumArt_str.c_str();
-        Serial.println(CmdStr.c_str());
-
 
     canvas.drawRoundRect(0,0, infoRect.w, infoRect.h, 5, 15); //枠書き直し
 
 
-    canvas.pushCanvas(infoRect.x, infoRect.y, UPDATE_MODE_DU4);
-
-/* アルバムアート表示テスト　-今はカットしておく
-         // 既存 canvas の削除
-        canvas.deleteCanvas();
-        // 新規 canvas の生成 （幅 350 x 高さ 25 [pixel]）
-        canvas.createCanvas( infoRect.w, infoRect.h);
-
-         canvas.drawPngUrl(CmdStr.c_str(),0,0); // アルバムアートDRAW
+   // canvas.pushCanvas(infoRect.x, infoRect.y, UPDATE_MODE_DU4);
 
         canvas.pushCanvas(infoRect.x, infoRect.y, UPDATE_MODE_GC16);
-*/
+
 
 }
 
@@ -434,6 +421,17 @@ int TouchBtn(){
            BtnDraw(2,true);
           return(3);
       }
+
+      if( (Pos.x >btns[3].x ) && (Pos.x < btns[3].x + btns[3].w ) &&
+           (Pos.y >btns[3].y ) && (Pos.y < btns[3].y + btns[3].h )   ) 
+      {
+           //BtnDraw(2,false);
+          Serial.printf("X[3] : ON \r\n");
+           //BtnDraw(2,true);
+          return(4);
+      }
+
+
     }
     return(0);
 }
@@ -441,6 +439,8 @@ int TouchBtn(){
 void loop()
 {
     int i;
+
+    bool infoFlg = true;
 
     if( M5.BtnL.wasPressed()) ButtonTest("Prev",2);
     if( M5.BtnP.wasPressed()) ButtonTest("Play/Pause",1);
@@ -471,6 +471,15 @@ void loop()
               http.begin(CmdStr.c_str());
               //http.begin("http://192.168.1.86/api/v1/commands?cmd=next");
               break;
+            case 4:
+              //CmdStr += "/api/v1/commands?cmd=next";
+              //http.begin(CmdStr.c_str());
+              //http.begin("http://192.168.1.86/api/v1/commands?cmd=next");
+
+                  if(infoFlg) infoFlg=false;
+                  else infoFlg=true;
+
+              break;
           }
 
           int httpCode = http.GET();
@@ -484,7 +493,11 @@ void loop()
           }
           http.end();
 
-          MusicInfo();
+          if(infoFlg){
+            MusicInfo();
+          } else {
+              AlbumArt();
+          }
 
     }
 
